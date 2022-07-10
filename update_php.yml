@@ -1,0 +1,48 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+    - name: install build
+      apt:
+        name: "{{ item }}"
+        update_cache: yes
+      loop:
+        - apt-transport-https
+        - ca-certificates
+        - software-properties-common
+    - name: "Add DEB repository" 
+      apt_repository:
+        repo: deb https://packages.sury.org/php/ stretch main
+        state: present
+      register: add_repository
+
+    - name: Download the signing key
+      shell: wget -O /etc/apt/trusted.gpg.d/php.gpg https://packages.sury.org/php/apt.gpg
+      when: add_repository.changed
+      register: add_key
+      
+    - name: Update packages
+      apt:
+        update_cache=yes
+      when: add_key.changed   
+      register: update_cache
+
+    - name: Delete php5.6.4
+      shell: rm -f /usr/local/bin/php /usr/local/lib/php /usr/local/php
+      when: update_cache.changed
+      register: delete_php56
+
+    - name: Install php
+      apt:
+        name: "{{ item }}"
+        update_cache: yes
+      loop:
+        - php7.2
+        - php7.2-common
+        - php7.2-cli
+      when: delete_php56.changed
+      register: install_php72
+      
+    - name: Check the new version of php
+      shell: php -v
+...

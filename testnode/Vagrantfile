@@ -1,0 +1,31 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  # Указание образа из которого делаем VM
+  config.vm.box = "debian/stretch64"
+  # Не проверяем обновление этого образа
+  config.vm.box_check_update = false
+  # Расширение жесткого диска VM до 100 Gb
+  # Обязательно установка плагина vagrant
+  # vagrant plugin install vagrant-disksize
+  config.disksize.size = "100GB"
+  config.vm.define "debian-test" do |machine|
+    machine.vm.provision "shell", inline: "apt-get update && apt-get upgrade -y"
+    end
+  # Установка параметров VM через провайдер
+  config.vm.provider "virtualbox" do |vb|
+    # имя виртуальной машины
+    vb.name = "debian_test"
+    # объем оперативной памяти
+    vb.memory = 2048
+    # количество ядер процессора
+    vb.cpus = 1
+  end
+
+  # Установка пакетов 
+  config.vm.provision :ansible do |ansible|
+    ansible.limit = "all"
+    ansible.playbook = "packet.yml"
+  end
+end

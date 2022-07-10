@@ -1,0 +1,27 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+    - name: Delete_php56
+      shell: rm -f /usr/local/bin/php /usr/local/lib/php /usr/local/php
+      register: Delete_php56
+    - name: Unpacking php56 Source
+      unarchive:
+        src: "https://php.net/distributions/php-7.2.32.tar.gz"
+        dest: /tmp/
+        remote_src: yes
+        creates: /tmp/php-7.2.32.tar.gz
+      when: Delete_php56.changed
+      register: php_source_unpack
+    - name: Configuring PHP Source
+      command: "./configure"
+      args:
+        chdir: "/tmp/php-7.2.32"
+      when: php_source_unpack.changed
+      register: php_configure
+    - name: Installing PHP
+      shell: checkinstall -default make install
+      args:
+        chdir: "/tmp/php-7.2.32"
+      when: php_configure.changed
+      register: installed_php

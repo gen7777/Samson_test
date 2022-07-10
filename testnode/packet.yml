@@ -1,0 +1,59 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+    - name: install simple
+      apt:
+        name: "{{ item }}"
+        update_cache: yes
+      loop:
+        - vim
+        - wget
+        - htop
+        - tmux
+    - name: install nginx
+      apt:
+        name: nginx
+        update_cache: yes
+    - name: install apache2
+      apt:
+        name: apache2
+        update_cache: yes
+    - name: config apache2 (listen 8888)
+      replace:
+        path: "/etc/apache2/ports.conf"
+        regexp: '^Listen 80$'
+        replace: 'Listen 8888' 
+    - name: start apache2
+      systemd:
+        name: apache2
+        state: started
+    - name: install build
+      apt:
+        name: "{{ item }}"
+        update_cache: yes
+      loop:
+        - build-essential
+        - libxml2-dev
+        - checkinstall
+    - name: Unpacking php56 Source
+      unarchive:
+        src: "http://us1.php.net/distributions/php-5.6.4.tar.xz"
+        dest: /tmp/
+        remote_src: yes
+        creates: /tmp/php-5.6.4.tar.gz
+      register: php_source_unpack
+    - name: Configuring PHP Source
+      command: "./configure"
+      args:
+        chdir: "/tmp/php-5.6.4"
+      when: php_source_unpack.changed
+      register: php_configure
+    - name: Installing PHP
+      shell: checkinstall -default make install
+      args:
+        chdir: "/tmp/php-5.6.4"
+      when: php_configure.changed
+      register: installed_php
+    
+...
